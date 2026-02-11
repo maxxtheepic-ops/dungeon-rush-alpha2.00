@@ -332,7 +332,7 @@ void CombatAnimation::drawTextBox(const String& text) {
     display->drawRect(0, ANIM_TEXTBOX_Y, SCREEN_WIDTH, ANIM_TEXTBOX_HEIGHT, COLOR_WHITE);
     display->drawRect(2, ANIM_TEXTBOX_Y + 2, SCREEN_WIDTH - 4, ANIM_TEXTBOX_HEIGHT - 4, COLOR_GRAY);
     
-    // Word wrap and draw text
+    // Word wrap and draw text (with dark gray background to match the box)
     int textX = ANIM_TEXTBOX_PADDING;
     int textY = ANIM_TEXTBOX_Y + ANIM_TEXTBOX_PADDING;
     int lineHeight = 14;
@@ -357,7 +357,7 @@ void CombatAnimation::drawTextBox(const String& text) {
             remaining = remaining.substring(splitPos + 1);
         }
         
-        display->drawText(lineText, textX, textY + (line * lineHeight), COLOR_WHITE, 1);
+        display->drawText(lineText, textX, textY + (line * lineHeight), COLOR_WHITE, 1, COLOR_DARK_GRAY);
         line++;
     }
 }
@@ -365,5 +365,5 @@ void CombatAnimation::drawTextBox(const String& text) {
 void CombatAnimation::drawAdvancePrompt() {
     // Draw "Press A" prompt at bottom right of text box
     int promptY = ANIM_TEXTBOX_Y + ANIM_TEXTBOX_HEIGHT - 16;
-    display->drawTextRight("Press A >", promptY, COLOR_YELLOW, 1);
+    display->drawTextRight("Press A >", promptY, COLOR_YELLOW, 1, COLOR_DARK_GRAY);
 }

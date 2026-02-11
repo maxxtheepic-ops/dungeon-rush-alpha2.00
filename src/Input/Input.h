@@ -12,18 +12,23 @@
 enum class Button {
     UP,
     DOWN,
+    LEFT,
+    RIGHT,
     A,
     B,
+    X,
+    Y,
+    OPTIONS,
     NONE
 };
 
 class Input {
 private:
     // Button states (current frame)
-    bool buttonStates[4];
+    bool buttonStates[BUTTON_COUNT];
     
     // Button states (previous frame) - for edge detection
-    bool prevButtonStates[4];
+    bool prevButtonStates[BUTTON_COUNT];
     
     // Debounce timing
     unsigned long lastDebounceTime;

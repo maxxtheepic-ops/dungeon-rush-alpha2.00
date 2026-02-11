@@ -50,14 +50,14 @@ void Display::setBacklight(bool on) {
 
 // === TEXT DRAWING ===
 
-void Display::drawText(const String& text, int x, int y, uint16_t color, uint8_t size) {
-    tft.setTextColor(color, COLOR_BG);
+void Display::drawText(const String& text, int x, int y, uint16_t color, uint8_t size, uint16_t bgColor) {
+    tft.setTextColor(color, bgColor);
     tft.setTextSize(size);
     tft.setCursor(x, y);
     tft.print(text);
 }
 
-void Display::drawTextCentered(const String& text, int y, uint16_t color, uint8_t size) {
+void Display::drawTextCentered(const String& text, int y, uint16_t color, uint8_t size, uint16_t bgColor) {
     tft.setTextSize(size);
     
     // Calculate text width (approximate: 6 pixels per char at size 1)
@@ -65,10 +65,10 @@ void Display::drawTextCentered(const String& text, int y, uint16_t color, uint8_
     int textWidth = text.length() * charWidth;
     int x = (SCREEN_WIDTH - textWidth) / 2;
     
-    drawText(text, x, y, color, size);
+    drawText(text, x, y, color, size, bgColor);
 }
 
-void Display::drawTextRight(const String& text, int y, uint16_t color, uint8_t size) {
+void Display::drawTextRight(const String& text, int y, uint16_t color, uint8_t size, uint16_t bgColor) {
     tft.setTextSize(size);
     
     // Calculate text width
@@ -76,7 +76,7 @@ void Display::drawTextRight(const String& text, int y, uint16_t color, uint8_t s
     int textWidth = text.length() * charWidth;
     int x = SCREEN_WIDTH - textWidth - 4; // 4px margin
     
-    drawText(text, x, y, color, size);
+    drawText(text, x, y, color, size, bgColor);
 }
 
 // === SHAPE DRAWING ===

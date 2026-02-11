@@ -152,6 +152,7 @@ void CombatState::drawCombatScreen() {
     combatHUD->drawFull(player, enemy);
     
     // Initialize spell selector below HUD
+    // init() calls reset() which restores remembered indices
     spellSelector->init(player, combatHUD->getBottomY() + 5);
     spellSelector->drawFull();
 }
@@ -159,22 +160,24 @@ void CombatState::drawCombatScreen() {
 void CombatState::handlePlayerTurn() {
     Input* input = stateManager->getInput();
     
-    // Navigation
-    if (input->wasPressed(Button::UP)) {
-        spellSelector->moveUp();
+    // Navigation (Left/Right to cycle through elements and types)
+    if (input->wasPressed(Button::LEFT)) {
+        spellSelector->moveLeft();
         spellSelector->update();
     }
     
-    if (input->wasPressed(Button::DOWN)) {
-        spellSelector->moveDown();
+    if (input->wasPressed(Button::RIGHT)) {
+        spellSelector->moveRight();
         spellSelector->update();
     }
     
     // Confirm
     if (input->wasPressed(Button::A)) {
         if (spellSelector->confirm()) {
-            // Spell selected - start animation
+            // Spell selected - remember choice for next turn, then animate
+            spellSelector->rememberSelection();
             startSpellAnimation();
+            return;  // Don't let spellSelector->update() redraw over animation
         } else {
             // Just moved to type selection
             spellSelector->update();
@@ -189,6 +192,9 @@ void CombatState::handlePlayerTurn() {
         }
         // Note: B at element selection does nothing (can't flee combat)
     }
+    
+    // Update blink animation even when no input
+    spellSelector->update();
 }
 
 void CombatState::startSpellAnimation() {
@@ -243,7 +249,7 @@ void CombatState::handleAnimation() {
             phase = CombatPhase::PLAYER_TURN;
             combatAnimation->reset();
             
-            // Redraw combat screen
+            // Redraw combat screen (spell selector will restore remembered indices)
             drawCombatScreen();
         }
     }

@@ -27,9 +27,9 @@ public:
     void setBacklight(bool on);
     
     // === TEXT DRAWING ===
-    void drawText(const String& text, int x, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2);
-    void drawTextCentered(const String& text, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2);
-    void drawTextRight(const String& text, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2);
+    void drawText(const String& text, int x, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2, uint16_t bgColor = COLOR_BG);
+    void drawTextCentered(const String& text, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2, uint16_t bgColor = COLOR_BG);
+    void drawTextRight(const String& text, int y, uint16_t color = COLOR_TEXT, uint8_t size = 2, uint16_t bgColor = COLOR_BG);
     
     // === SHAPE DRAWING ===
     void fillRect(int x, int y, int w, int h, uint16_t color);

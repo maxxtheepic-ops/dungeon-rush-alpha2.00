@@ -34,17 +34,27 @@ private:
     int elementIndex;
     int typeIndex;
     
+    // Remembered selection (persists between turns)
+    int rememberedElementIndex;
+    int rememberedTypeIndex;
+    
+    // Blink state for active cursor box
+    unsigned long blinkTimer;
+    bool blinkVisible;
+    static const unsigned long BLINK_INTERVAL_MS = 350;
+    
     // Cache for partial updates
     int lastElementIndex;
     int lastTypeIndex;
     SelectorPhase lastPhase;
+    bool lastBlinkVisible;
     
     // Drawing helpers
     void drawElementRow();
     void drawTypeRow();
     void drawPhaseIndicator();
-    void drawCursor(int x, int y);
-    void clearCursor(int x, int y);
+    void drawBox(int x, int y, uint16_t color);
+    void clearBox(int x, int y);
     int getElementX(int index) const;
     int getTypeX(int index) const;
 
@@ -53,17 +63,19 @@ public:
     
     // === LIFECYCLE ===
     void init(const Player* p, int yPosition);
-    void reset();
+    void reset();               // Resets phase but restores remembered indices
+    void fullReset();           // Full reset including remembered indices
+    void rememberSelection();   // Save current indices for next turn
     
     // === INPUT HANDLING ===
-    void moveUp();
-    void moveDown();
+    void moveLeft();
+    void moveRight();
     bool confirm();     // Returns true if spell is ready to cast
     bool cancel();      // Returns true if cancelled out of element selection
     
     // === DRAWING ===
     void drawFull();
-    void update();      // Partial update for cursor movement
+    void update();      // Partial update for cursor movement and blink
     void drawSpellPreview();
     
     // === STATE ===

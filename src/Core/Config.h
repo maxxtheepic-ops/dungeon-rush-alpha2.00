@@ -19,16 +19,15 @@
 // TFT_BL   = 14  (Backlight - INVERTED: LOW = ON)
 
 // Input Buttons
-#define PIN_BTN_UP      18
-#define PIN_BTN_DOWN    17
-#define PIN_BTN_A       21
-#define PIN_BTN_B       38
-
-// Future expansion pins (unused)
-#define PIN_BTN_LEFT    -1
-#define PIN_BTN_RIGHT   -1
-#define PIN_BTN_X       -1
-#define PIN_BTN_Y       -1
+#define PIN_BTN_UP      1
+#define PIN_BTN_DOWN    5
+#define PIN_BTN_LEFT    3
+#define PIN_BTN_RIGHT   2
+#define PIN_BTN_A       40
+#define PIN_BTN_B       39
+#define PIN_BTN_X       41
+#define PIN_BTN_Y       42
+#define PIN_BTN_OPTIONS 46
 
 // SD Card pins (unused)
 #define PIN_SD_CS       -1
@@ -75,6 +74,7 @@
 // === INPUT CONFIGURATION ===
 
 #define INPUT_DEBOUNCE_MS   50
+#define BUTTON_COUNT        9
 
 // === GAME BALANCE ===
 

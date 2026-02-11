@@ -9,9 +9,14 @@ SpellSelector::SpellSelector(Display* disp) : display(disp), player(nullptr) {
     phase = SelectorPhase::SELECT_ELEMENT;
     elementIndex = 0;
     typeIndex = 0;
+    rememberedElementIndex = 0;
+    rememberedTypeIndex = 0;
     lastElementIndex = -1;
     lastTypeIndex = -1;
     lastPhase = SelectorPhase::SELECT_ELEMENT;
+    blinkTimer = 0;
+    blinkVisible = true;
+    lastBlinkVisible = true;
 }
 
 // =============================================================================
@@ -26,18 +31,44 @@ void SpellSelector::init(const Player* p, int yPosition) {
 
 void SpellSelector::reset() {
     phase = SelectorPhase::SELECT_ELEMENT;
-    elementIndex = 0;
-    typeIndex = 0;
+    
+    // Restore remembered indices, clamped to valid range
+    elementIndex = rememberedElementIndex;
+    typeIndex = rememberedTypeIndex;
+    
+    if (player) {
+        if (elementIndex >= player->getElementCount()) {
+            elementIndex = 0;
+        }
+        if (typeIndex >= player->getTypeCount()) {
+            typeIndex = 0;
+        }
+    }
+    
     lastElementIndex = -1;
     lastTypeIndex = -1;
     lastPhase = SelectorPhase::SELECT_ELEMENT;
+    blinkTimer = millis();
+    blinkVisible = true;
+    lastBlinkVisible = true;
+}
+
+void SpellSelector::fullReset() {
+    rememberedElementIndex = 0;
+    rememberedTypeIndex = 0;
+    reset();
+}
+
+void SpellSelector::rememberSelection() {
+    rememberedElementIndex = elementIndex;
+    rememberedTypeIndex = typeIndex;
 }
 
 // =============================================================================
 // INPUT HANDLING
 // =============================================================================
 
-void SpellSelector::moveUp() {
+void SpellSelector::moveLeft() {
     if (phase == SelectorPhase::SELECT_ELEMENT) {
         elementIndex--;
         if (elementIndex < 0) {
@@ -49,9 +80,12 @@ void SpellSelector::moveUp() {
             typeIndex = player->getTypeCount() - 1;
         }
     }
+    // Reset blink to visible on input so cursor is always seen after moving
+    blinkVisible = true;
+    blinkTimer = millis();
 }
 
-void SpellSelector::moveDown() {
+void SpellSelector::moveRight() {
     if (phase == SelectorPhase::SELECT_ELEMENT) {
         elementIndex++;
         if (elementIndex >= player->getElementCount()) {
@@ -63,12 +97,17 @@ void SpellSelector::moveDown() {
             typeIndex = 0;
         }
     }
+    // Reset blink to visible on input
+    blinkVisible = true;
+    blinkTimer = millis();
 }
 
 bool SpellSelector::confirm() {
     if (phase == SelectorPhase::SELECT_ELEMENT) {
         phase = SelectorPhase::SELECT_TYPE;
-        typeIndex = 0;
+        // Reset blink for the new phase
+        blinkVisible = true;
+        blinkTimer = millis();
         return false;
     } else if (phase == SelectorPhase::SELECT_TYPE) {
         phase = SelectorPhase::READY_TO_CAST;
@@ -80,6 +119,9 @@ bool SpellSelector::confirm() {
 bool SpellSelector::cancel() {
     if (phase == SelectorPhase::SELECT_TYPE) {
         phase = SelectorPhase::SELECT_ELEMENT;
+        // Reset blink for the new phase
+        blinkVisible = true;
+        blinkTimer = millis();
         return false;
     } else if (phase == SelectorPhase::SELECT_ELEMENT) {
         return true;  // Cancelled out completely
@@ -94,7 +136,7 @@ bool SpellSelector::cancel() {
 void SpellSelector::drawFull() {
     if (!player) return;
     
-    // Clear selection area
+    // Clear entire selection area
     display->clearArea(0, startY, SCREEN_WIDTH, getBottomY() - startY, COLOR_BG);
     
     // Labels
@@ -112,56 +154,56 @@ void SpellSelector::drawFull() {
     lastElementIndex = elementIndex;
     lastTypeIndex = typeIndex;
     lastPhase = phase;
+    lastBlinkVisible = blinkVisible;
 }
 
 void SpellSelector::update() {
     if (!player) return;
     
-    bool needsPreviewUpdate = false;
+    // === BLINK LOGIC ===
+    unsigned long now = millis();
+    if (now - blinkTimer >= BLINK_INTERVAL_MS) {
+        blinkVisible = !blinkVisible;
+        blinkTimer = now;
+    }
     
-    // Update element cursor if changed
-    if (lastElementIndex != elementIndex || lastPhase != phase) {
-        // Clear old cursor
-        if (lastElementIndex >= 0 && lastElementIndex < player->getElementCount()) {
-            clearCursor(getElementX(lastElementIndex), startY + ELEMENT_ROW_Y_OFFSET);
-        }
-        // Draw new cursor if in element phase
-        if (phase == SelectorPhase::SELECT_ELEMENT) {
-            drawCursor(getElementX(elementIndex), startY + ELEMENT_ROW_Y_OFFSET);
-        }
+    // Check what changed
+    bool elementChanged = (lastElementIndex != elementIndex);
+    bool typeChanged = (lastTypeIndex != typeIndex);
+    bool phaseChanged = (lastPhase != phase);
+    bool blinkChanged = (lastBlinkVisible != blinkVisible);
+    
+    // === ELEMENT ROW - full row redraw when anything relevant changes ===
+    if (elementChanged || phaseChanged || blinkChanged) {
+        drawElementRow();
         lastElementIndex = elementIndex;
-        needsPreviewUpdate = true;
     }
     
-    // Update type cursor if changed
-    if (lastTypeIndex != typeIndex || lastPhase != phase) {
-        // Clear old cursor
-        if (lastTypeIndex >= 0 && lastTypeIndex < player->getTypeCount()) {
-            clearCursor(getTypeX(lastTypeIndex), startY + TYPE_ROW_Y_OFFSET);
-        }
-        // Draw new cursor if in type phase
-        if (phase == SelectorPhase::SELECT_TYPE) {
-            drawCursor(getTypeX(typeIndex), startY + TYPE_ROW_Y_OFFSET);
-        }
+    // === TYPE ROW - full row redraw when anything relevant changes ===
+    if (typeChanged || phaseChanged || blinkChanged) {
+        drawTypeRow();
         lastTypeIndex = typeIndex;
-        needsPreviewUpdate = true;
     }
     
-    // Update phase indicator if changed
-    if (lastPhase != phase) {
+    // === PHASE INDICATOR ===
+    if (phaseChanged) {
         drawPhaseIndicator();
         lastPhase = phase;
-        needsPreviewUpdate = true;
     }
     
-    // Update spell preview if anything changed
-    if (needsPreviewUpdate) {
+    lastBlinkVisible = blinkVisible;
+    
+    // Update spell preview only if selection actually changed (not just blink)
+    if (elementChanged || typeChanged || phaseChanged) {
         drawSpellPreview();
     }
 }
 
 void SpellSelector::drawElementRow() {
     int y = startY + ELEMENT_ROW_Y_OFFSET;
+    
+    // Clear the entire element row area (text + box + padding)
+    display->clearArea(0, y - 3, SCREEN_WIDTH, ITEM_HEIGHT + 6, COLOR_BG);
     
     for (int i = 0; i < player->getElementCount(); i++) {
         Element e = player->getElement(i);
@@ -171,15 +213,26 @@ void SpellSelector::drawElementRow() {
         String abbrev = String(getElementName(e)).substring(0, 3);
         display->drawText(abbrev, x, y, getElementColor(e), 1);
         
-        // Draw cursor if selected and in element phase
-        if (phase == SelectorPhase::SELECT_ELEMENT && i == elementIndex) {
-            drawCursor(x, y);
+        // Draw box around selected element
+        if (i == elementIndex) {
+            if (phase == SelectorPhase::SELECT_ELEMENT) {
+                // Active phase: blink the box
+                if (blinkVisible) {
+                    drawBox(x, y, COLOR_CURSOR);
+                }
+            } else {
+                // Element confirmed: solid yellow box
+                drawBox(x, y, COLOR_CURSOR);
+            }
         }
     }
 }
 
 void SpellSelector::drawTypeRow() {
     int y = startY + TYPE_ROW_Y_OFFSET;
+    
+    // Clear the entire type row area (text + box + padding)
+    display->clearArea(0, y - 3, SCREEN_WIDTH, ITEM_HEIGHT + 6, COLOR_BG);
     
     for (int i = 0; i < player->getTypeCount(); i++) {
         SpellType t = player->getType(i);
@@ -189,9 +242,17 @@ void SpellSelector::drawTypeRow() {
         String abbrev = String(getTypeName(t)).substring(0, 3);
         display->drawText(abbrev, x, y, COLOR_WHITE, 1);
         
-        // Draw cursor if selected and in type phase
-        if (phase == SelectorPhase::SELECT_TYPE && i == typeIndex) {
-            drawCursor(x, y);
+        // Draw box around selected type
+        if (i == typeIndex) {
+            if (phase == SelectorPhase::SELECT_TYPE) {
+                // Active phase: blink the box
+                if (blinkVisible) {
+                    drawBox(x, y, COLOR_CURSOR);
+                }
+            } else {
+                // Not active phase: dim solid box shows remembered selection
+                drawBox(x, y, COLOR_GRAY);
+            }
         }
     }
 }
@@ -209,11 +270,11 @@ void SpellSelector::drawPhaseIndicator() {
     }
 }
 
-void SpellSelector::drawCursor(int x, int y) {
-    display->drawRect(x - 3, y - 2, ITEM_WIDTH, ITEM_HEIGHT, COLOR_CURSOR);
+void SpellSelector::drawBox(int x, int y, uint16_t color) {
+    display->drawRect(x - 3, y - 2, ITEM_WIDTH, ITEM_HEIGHT, color);
 }
 
-void SpellSelector::clearCursor(int x, int y) {
+void SpellSelector::clearBox(int x, int y) {
     display->drawRect(x - 3, y - 2, ITEM_WIDTH, ITEM_HEIGHT, COLOR_BG);
 }
 
